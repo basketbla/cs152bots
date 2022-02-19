@@ -9,6 +9,7 @@ class State(Enum):
     REPORT_COMPLETE = auto()
     AWAITING_GROUP = auto()
     ACTION_CHOSEN = auto()
+    REPORT_CANCELLED = auto()
 
 class Report:
     START_KEYWORD = "report"
@@ -19,6 +20,9 @@ class Report:
         self.state = State.REPORT_START
         self.client = client
         self.message = None
+        self.abuse_type = None
+        self.target_group = None
+        self.action = None
     
     async def handle_message(self, message):
         '''
@@ -26,9 +30,10 @@ class Report:
         prompts to offer at each of those states. You're welcome to change anything you want; this skeleton is just here to
         get you started and give you a model for working with Discord. 
         '''
-
+        self.message = message
+        
         if message.content == self.CANCEL_KEYWORD:
-            self.state = State.REPORT_COMPLETE
+            self.state = State.REPORT_CANCELLED
             return ["Report cancelled."]
         
         if self.state == State.REPORT_START:
@@ -69,6 +74,7 @@ class Report:
         
         if self.state == State.MESSAGE_IDENTIFIED:
             m = message.content
+            self.abuse_type = m
             if (m not in ['1', '2', '3', '4', '5', '6']):
                 return ["Please format your response as one of these options:\n" +
                         "Enter `1` for Spam: Repeated, unwanted and/or unsolicited actions, whether automated or manual, that negatively effect platform communities\n" +
@@ -92,6 +98,7 @@ class Report:
         
         if self.state == State.AWAITING_GROUP:
             m = message.content
+            self.target_group = m
             if (m not in ['1', '2', '3', '4']):
                 return ["Please format your response as one of these options:\n" +
                     "Enter `1` for: Religious Group\n" +
@@ -110,6 +117,7 @@ class Report:
         
         if (self.state == State.ACTION_CHOSEN):
             m = message.content
+            self.action = m
             if (m not in ['1', '2', '3', '4']):
                 return ["Please format your response as one of these options:\n" +
                     "Enter `1` for: Religious Group\n" +
@@ -120,11 +128,16 @@ class Report:
             
             self.state = State.REPORT_COMPLETE
             return ["Thank you for filing this report! We will review this post and take the appropriate action"]
+
+            # Send the message to the mods and kick of the manual reporting flow
             
         return []
 
     def report_complete(self):
         return self.state == State.REPORT_COMPLETE
+    
+    def report_cancelled(self):
+        return self.state == State.REPORT_CANCELLED
     
 
 

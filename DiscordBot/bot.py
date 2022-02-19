@@ -34,6 +34,7 @@ class ModBot(discord.Client):
         self.mod_channels = {} # Map from guild to the mod channel id for that guild
         self.reports = {} # Map from user IDs to the state of their report
         self.perspective_key = key
+        self.server_id = 944665883882688522
 
     async def on_ready(self):
         print(f'{self.user.name} has connected to Discord! It is these guilds:')
@@ -94,9 +95,16 @@ class ModBot(discord.Client):
         responses = await self.reports[author_id].handle_message(message)
         for r in responses:
             await message.channel.send(r)
-
-        # If the report is complete or cancelled, remove it from our map
+        
+        # Reporting flow completed. Notify the mods
         if self.reports[author_id].report_complete():
+            mod_channel = self.mod_channels[self.server_id]
+            await mod_channel.send(f'Message reported:\n{message.author.name}: "{message.content}\nReported by: {author_id}\nAbuse type: {self.reports[author_id].abuse_type}\nTarget group: {self.reports[author_id].target_group}\nAction: {self.reports[author_id].action}')
+            self.reports.pop(author_id)
+            return
+
+        # If the report is cancelled, remove it from our map
+        if self.reports[author_id].report_cancelled():
             self.reports.pop(author_id)
 
     async def handle_channel_message(self, message):
