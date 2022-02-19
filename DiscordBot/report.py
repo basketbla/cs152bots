@@ -7,6 +7,8 @@ class State(Enum):
     AWAITING_MESSAGE = auto()
     MESSAGE_IDENTIFIED = auto()
     REPORT_COMPLETE = auto()
+    AWAITING_GROUP = auto()
+    ACTION_CHOSEN = auto()
 
 class Report:
     START_KEYWORD = "report"
@@ -56,11 +58,69 @@ class Report:
             # Here we've found the message - it's up to you to decide what to do next!
             self.state = State.MESSAGE_IDENTIFIED
             return ["I found this message:", "```" + message.author.name + ": " + message.content + "```", \
-                    "This is all I know how to do right now - it's up to you to build out the rest of my reporting flow!"]
+                    "Please specify why you reported this post:\n" +
+                    "Enter `1` for Spam: Repeated, unwanted and/or unsolicited actions, whether automated or manual, that negatively effect platform communities\n" +
+                    "Enter `2` for Offensive Content: Material that can be considered vulgar, obscene, or offensive\n" +
+                    "Enter `3` for Propaganda against domestic minority groups: Content posted by a political actor containing misleading information about a domestic minority group\n" +
+                    "Enter `4` for Imminent Danger: Content that places an individual at serious risk of death or serious physical harm\n" +
+                    "Enter `5` for Sexual Content: Content depicting sexual behavior\n" +
+                    "Enter `6` for Harassment: Content that aggressively intmidates or pressures someone\n" +
+                    "Enter `cancel` to cancel the report"]
         
         if self.state == State.MESSAGE_IDENTIFIED:
-            return ["<insert rest of reporting flow here>"]
+            m = message.content
+            if (m not in ['1', '2', '3', '4', '5', '6']):
+                return ["Please format your response as one of these options:\n" +
+                        "Enter `1` for Spam: Repeated, unwanted and/or unsolicited actions, whether automated or manual, that negatively effect platform communities\n" +
+                        "Enter `2` for Offensive Content: Material that can be considered vulgar, obscene, or offensive\n" +
+                        "Enter `3` for Propaganda against domestic minority groups: Content posted by a political actor containing misleading information about a domestic minority group\n" +
+                        "Enter `4` for Imminent Danger: Content that places an individual at serious risk of death or serious physical harm\n" +
+                        "Enter `5` for Sexual Content: Content depicting sexual behavior\n" +
+                        "Enter `6` for Harassment: Content that aggressively intmidates or pressures someone\n" +
+                        "Enter `cancel` to cancel the report"]
+            elif (m == '3'):
+                self.state = State.AWAITING_GROUP
+                return ["Which group does this target?\n" +
+                    "Enter `1` for: Religious Group\n" +
+                    "Enter `2` for: Political Group\n" +
+                    "Enter `3` for: Ethnic/Racial Group\n" +
+                    "Enter `4` for: Other\n" +
+                    "Enter `cancel` to cancel the report"]
+            else:
+                self.state = State.REPORT_COMPLETE
+                return ["Thank you for filing this report! We will review this post and take the appropriate action"]
+        
+        if self.state == State.AWAITING_GROUP:
+            m = message.content
+            if (m not in ['1', '2', '3', '4']):
+                return ["Please format your response as one of these options:\n" +
+                    "Enter `1` for: Religious Group\n" +
+                    "Enter `2` for: Political Group\n" +
+                    "Enter `3` for: Ethnic/Racial Group\n" +
+                    "Enter `4` for: Other\n" +
+                    "Enter `cancel` to cancel the report"]
 
+            self.state = State.ACTION_CHOSEN
+            return ["Thank you for filing this report. Would you like to:\n" +
+                "Enter `1` for: Block this user\n" +
+                "Enter `2` for: Filter our content similar to this post\n" +
+                "Enter `3` for: Both of the above\n" +
+                "Enter `4` for: None of the above\n" +
+                "Enter `cancel` to cancel the report"]
+        
+        if (self.state == State.ACTION_CHOSEN):
+            m = message.content
+            if (m not in ['1', '2', '3', '4']):
+                return ["Please format your response as one of these options:\n" +
+                    "Enter `1` for: Religious Group\n" +
+                    "Enter `2` for: Political Group\n" +
+                    "Enter `3` for: Ethnic/Racial Group\n" +
+                    "Enter `4` for: Other\n" +
+                    "Enter `cancel` to cancel the report"]
+            
+            self.state = State.REPORT_COMPLETE
+            return ["Thank you for filing this report! We will review this post and take the appropriate action"]
+            
         return []
 
     def report_complete(self):
